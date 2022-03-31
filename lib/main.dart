@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,68 +17,55 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-  final String title;
-  @override
-  State<MyHomePage> createState() => MyHomePageState();
-}
-
-//statefulWidgetを作ったらこれを作成しないといけない。
-class MyHomePageState extends State<MyHomePage> {
-  late MyHomePageLogic myHomePageLogic;
-
-  @override
-  void initState() {
-    super.initState();
-    myHomePageLogic =MyHomePageLogic();
-  }
+class MyHomePage extends StatelessWidget {
+  const MyHomePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     print("MyHomePageをレンダリング");
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const WidgetA(),
-            WidgetB(myHomePageLogic),
-            WidgetC(myHomePageLogic),
-          ],
+    return ChangeNotifierProvider(
+      //これが必要
+      create:(context) => MyHomePageState(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text("flutter lab"),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const <Widget>[
+              WidgetA(),
+              WidgetB(),
+              WidgetC(),
+              WidgetD(),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-//redux
-class MyHomePageLogic {
-  MyHomePageLogic() {
-    _counterController.sink.add(_counter);
+class MyHomePageState extends ChangeNotifier{
+  int counter =0;
+
+  void increment(){
+    counter ++;
+    //これを必ず入れる
+    notifyListeners();
   }
 
-  final StreamController<int> _counterController = StreamController();
-  int _counter = 0;
-  Stream<int> get count => _counterController.stream;
-
-  void increments() {
-    _counter++;
-    _counterController.sink.add(_counter);
-  }
-
-  void dispose(){
-    _counterController.close();
+  void decrement(){
+    counter --;
+    notifyListeners();
   }
 }
+
 
 class WidgetA extends StatelessWidget {
   const WidgetA({Key? key}) : super(key: key);
@@ -91,36 +79,54 @@ class WidgetA extends StatelessWidget {
 }
 
 class WidgetB extends StatelessWidget {
-  const WidgetB(this.myHomePageLogic,{Key? key}) : super(key: key);
-
-  final MyHomePageLogic myHomePageLogic;
-
+  const WidgetB({Key? key}) : super(key: key);
   //stateを上から受け取る
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<int>(
-      stream: myHomePageLogic.count,
-      builder: (context, snapshot) {
-        print("WidgetBをビルド");
-        return Text(
-          '${snapshot.data}',
-          style: Theme.of(context).textTheme.headline4,
-        );
-      }
+    print("widget");
+    // watchでstateの情報をアクセスできる
+
+    // watchにすると、常に再描画される。
+    // final int counter =context.watch<MyHomePageState>().counter;
+
+    //カウンターの状態変わっていない時はselectを使用する。
+    final int counter =context.select<MyHomePageState,int>((state) => state.counter);
+
+    return Text(
+      '$counter',
+      style: Theme.of(context).textTheme.headline4,
     );
   }
 }
 
 class WidgetC extends StatelessWidget {
-  const WidgetC(this.myHomePageLogic,{Key? key}) : super(key: key);
-  final MyHomePageLogic myHomePageLogic;
-
+  const WidgetC({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
     print("WidgetCをビルド");
+
+    //readはstateの再描画をしない。
+    //buttonの状態が変わらない。
+    final Function increment =context.read<MyHomePageState>().increment;
     return ElevatedButton(
         onPressed: () {
-          myHomePageLogic.increments();
+          increment();
+        },
+        child: const Text("カウント"));
+  }
+}
+
+
+class WidgetD extends StatelessWidget {
+  const WidgetD({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    print("WidgetDをビルド");
+    final Function decrement =context.read<MyHomePageState>().decrement;
+    return ElevatedButton(
+        onPressed: () {
+          decrement();
         },
         child: const Text("カウント"));
   }
