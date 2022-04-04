@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_state_exer/main.dart';
 import 'package:flutter_state_exer/state/my_home_state.dart';
 import 'package:flutter_state_exer/view_model/my_home_view_model.dart';
 import 'package:flutter_state_notifier/flutter_state_notifier.dart';
@@ -10,9 +12,8 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print("MyHomePageをレンダリング");
-    return StateNotifierProvider<MyHomePageStateNotifier,MyHomePageState>(
-      //これが必要
-      create:(context) => MyHomePageStateNotifier(),
+    //これを入れる
+    return ProviderScope(
       child: Scaffold(
         appBar: AppBar(
           title: const Text("flutter lab"),
@@ -34,6 +35,7 @@ class MyHomePage extends StatelessWidget {
 
 class WidgetA extends StatelessWidget {
   const WidgetA({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     print("WidgetAをビルド");
@@ -43,19 +45,13 @@ class WidgetA extends StatelessWidget {
   }
 }
 
-class WidgetB extends StatelessWidget {
+class WidgetB extends ConsumerWidget {
   const WidgetB({Key? key}) : super(key: key);
+
   //stateを上から受け取る
   @override
-  Widget build(BuildContext context) {
-    print("widget");
-    // watchでstateの情報をアクセスできる
-
-    // watchにすると、常に再描画される。
-    // final int counter =context.watch<MyHomePageState>().counter;
-
-    //カウンターの状態変わっていない時はselectを使用する。
-    final int counter =context.select<MyHomePageState,int>((state) => state.counter);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final int counter = ref.watch(myHomePageProvider).counter;
 
     return Text(
       '$counter',
@@ -64,15 +60,16 @@ class WidgetB extends StatelessWidget {
   }
 }
 
-class WidgetC extends StatelessWidget {
+class WidgetC extends ConsumerWidget {
   const WidgetC({Key? key}) : super(key: key);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     print("WidgetCをビルド");
 
     //readはstateの再描画をしない。
     //buttonの状態が変わらない。
-    final Function increment =context.read<MyHomePageStateNotifier>().increment;
+    final Function increment = ref.read(myHomePageProvider.notifier).increment;
     return ElevatedButton(
         onPressed: () {
           increment();
